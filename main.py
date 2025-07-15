@@ -1,4 +1,3 @@
-
 import time
 import requests
 from flask import Flask
@@ -9,7 +8,7 @@ TOKEN = "8111573872:AAE_LGmsgtGmKmOxx2v03Tsd5bL28z9bL3Y"
 CHAT_ID = 944484522
 bot = Bot(token=TOKEN)
 
-# === Flask-сервер ===
+# === Flask ===
 app = Flask(__name__)
 
 @app.route('/')
@@ -18,19 +17,16 @@ def home():
 
 @app.route('/send_test')
 def send_test():
-    bot.send_message(chat_id=CHAT_ID, text="Test message sent!")
+    try:
+        bot.send_message(chat_id=CHAT_ID, text="✅ Test message sent!")
+        print("✅ Test message отправлено в Telegram")
+    except Exception as e:
+        print("❌ Ошибка при отправке тестового сообщения:", e)
     return "Test message sent!"
 
-@app.route("/get_chat_id")
-def get_chat_id():
-    updates = bot.get_updates()
-    if updates:
-        return f"Последний Chat ID: {updates[-1].message.chat_id}"
-    return "Нет новых сообщений"
-
+# === Keep-alive для Render ===
 def keep_alive():
     import threading
-    from flask import request
     def run():
         app.run(host="0.0.0.0", port=10000)
     t = threading.Thread(target=run)
@@ -75,7 +71,7 @@ def get_mem_gems():
                 if not (80 <= drop_pct <= 90):
                     continue
 
-                # === Цели по уровням Фибоначчи ===
+                # Фибоначчи цели
                 tp1 = round(price * 1.272, 6)
                 tp2 = round(price * 1.618, 6)
                 tp3 = round(price * 2.0, 6)
@@ -96,24 +92,24 @@ def get_mem_gems():
 🔗 https://www.coingecko.com/en/coins/{coin['id']}
 #memgem #crypto #potential
 """
-
+                print("📤 Отправка Telegram:", symbol)
                 bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="HTML")
 
             except Exception as e:
-                print("Ошибка при проверке монеты:", e)
+                print("⚠️ Ошибка при отправке монеты:", e)
 
     except Exception as e:
-        print("Ошибка при получении данных:", e)
+        print("❌ Ошибка при получении данных с CoinGecko:", e)
 
-# === Главный цикл ===
+# === Основной цикл ===
 def main_loop():
     while True:
         try:
             print("🔄 Поиск мем-гемов...")
             get_mem_gems()
         except Exception as e:
-            print("Ошибка в основном цикле:", e)
-        time.sleep(180)  # каждые 3 минуты
+            print("❌ Ошибка в основном цикле:", e)
+        time.sleep(30)  # каждые 30 сек для теста
 
 # === Запуск ===
 keep_alive()
