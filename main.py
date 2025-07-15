@@ -1,14 +1,3 @@
-import requests
-from flask import Flask
-from telegram import Bot
-
-TOKEN = "8111573872:AAE_LGmsgtGmKmOxx2v03Tsd5bL28z9bL3Y"
-CHAT_ID = 944484522
-bot = Bot(token=TOKEN)
-
-app = Flask(__name__)
-
-# Получение списка мем-гемов
 def get_mem_gems():
     url = "https://api.coingecko.com/api/v3/coins/markets"
     params = {
@@ -16,55 +5,60 @@ def get_mem_gems():
         "order": "market_cap_desc",
         "per_page": 200,
         "page": 1,
-        "sparkline": "false"
+        "sparkline": False
     }
+
     try:
         response = requests.get(url, params=params)
-        data = response.json()
+        coins = response.json()
         gems = []
-        for coin in data:
+
+        for coin in coins:
             name = coin["name"]
-            symbol = coin["symbol"]
+            symbol = coin["symbol"].upper()
             price = coin["current_price"]
             ath = coin["ath"]
             volume = coin["total_volume"]
-            market_cap = coin["market_cap"]
+            cap = coin["market_cap"]
+
             if (
-                ath > 0 and
-                price > 0 and
-                market_cap and market_cap > 5_000_000 and
-                volume and volume > 1_000_000 and
-                "usd" not in symbol.lower() and
-                "usdt" not in symbol.lower() and
-                "busd" not in symbol.lower() and
-                "dai" not in symbol.lower() and
-                "tusd" not in symbol.lower() and
-                "scam" not in symbol.lower() and
-                "pig" not in symbol.lower() and
-                "turd" not in symbol.lower()
+                not name or not symbol or
+                price <= 0 or ath <= 0 or
+                cap is None or cap < 5_000_000 or
+                volume is None or volume < 1_000_000 or
+                price > 3 or
+                any(stable in symbol for stable in ["USD", "USDT", "BUSD", "DAI", "TUSD"]) or
+                any(bad in symbol for bad in ["SCAM", "PIG", "TURD", "RUG", "ASS"])
             ):
-                drop_pct = 100 * (1 - price / ath)
-                if 80 <= drop_pct <= 90 and price * 2 <= ath:
-                    gems.append(f"{name.upper()} ({symbol.upper()}): ${price} | Drop: {drop_pct:.1f}% | ATH: ${ath}")
+                continue
+
+            drop_pct = (1 - price / ath) * 100
+            if drop_pct < 80:
+                continue
+
+            # Фибоначчи цели
+            tp1 = round(price * 1.272, 6)
+            tp2 = round(price * 1.618, 6)
+            tp3 = round(price * 2.0, 6)
+            tp4 = round(price * 2.618, 6)
+
+            gem = f"""🚀 Найден новый MEM-GEM!
+
+🔸 Название: {name} ({symbol})
+💲 Цена: ${price}
+📉 Падение от ATH: -{drop_pct:.1f}%
+📊 Объём: ${volume:,.0f}
+🏷️ Цели (Fibonacci):
+• TP1 (1.272): ${tp1}
+• TP2 (1.618): ${tp2}
+• TP3 (2.0):   ${tp3}
+• TP4 (2.618): ${tp4}
+🔗 https://www.coingecko.com/en/coins/{coin['id']}
+"""
+            gems.append(gem)
+
         return gems
+
     except Exception as e:
-        print("Error getting mem gems:", e)
+        print("Error in get_mem_gems:", e)
         return []
-
-@app.route("/")
-def home():
-    return "Bot is running!"
-
-@app.route("/send_test")
-def send_test():
-    bot.send_message(chat_id=CHAT_ID, text="✅ Test message from mem-gem bot!")
-    return "Test message sent!"
-
-if __name__ == "__main__":
-    gems = get_mem_gems()
-    if gems:
-        for gem in gems:
-            bot.send_message(chat_id=CHAT_ID, text=f"💎 MEM-GEM:\n{gem}")
-    else:
-        bot.send_message(chat_id=CHAT_ID, text="❗️Мем-гемов не найдено")
-    app.run(host="0.0.0.0", port=10000)
