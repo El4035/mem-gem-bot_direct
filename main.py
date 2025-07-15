@@ -91,3 +91,7 @@ def main_loop():
 # === Запуск ===
 keep_alive()
 main_loop()
+@app.route("/send_test")
+def send_test():
+    bot.send_message(chat_id=CHAT_ID, text="✅ Test message from mem-gem bot")
+    return "Test message sent!"
