@@ -104,10 +104,14 @@ def main_loop():
         time.sleep(180)  # обновление каждые 3 минуты
 @app.route('/get_chat_id')
 def get_chat_id():
-    updates = bot.get_updates()
-    if updates:
-        return str(updates[-1].message.chat.id)
-    return "Нет новых сообщений. Напиши что-нибудь боту."
+    try:
+        updates = bot.get_updates()
+        if updates:
+            chat_id = updates[-1].message.chat.id
+            return f"Последний Chat ID: {chat_id}"
+        return "Нет новых сообщений от пользователя."
+    except Exception as e:
+        return f"Ошибка: {e}"
 # === Запуск ===
 keep_alive()
 main_loop()
