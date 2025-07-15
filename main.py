@@ -1,3 +1,4 @@
+
 from flask import Flask
 from telegram import Bot
 
@@ -12,5 +13,5 @@ def home():
     return "Bot is running!"
 
 if __name__ == "__main__":
-    bot.send_message(chat_id=CHAT_ID, text="✅ Бот на Render запущен!")
+    bot.send_message(chat_id=CHAT_ID, text="✅ Bot запущен!")
     app.run(host="0.0.0.0", port=10000)
