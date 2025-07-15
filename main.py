@@ -1,31 +1,32 @@
-import requests
 import time
+import requests
 from flask import Flask
-import threading
-import datetime
-import telegram
+from telegram import Bot
 
-# === Настройки Telegram ===
 TOKEN = "8111573872:AAE_LGmsgtGmKmOxx2v03Tsd5bL28z9bL3Y"
-CHAT_ID = "944484522"
-bot = telegram.Bot(token=TOKEN)
+CHAT_ID = 944484522
+bot = Bot(token=TOKEN)
 
-# === Flask сервер для Render (чтобы не засыпал) ===
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "I'm alive!"
 
-def run():
-    app.run(host='0.0.0.0', port=8080)
+@app.route('/send_test')
+def send_test():
+    bot.send_message(chat_id=CHAT_ID, text="Test message sent!")
+    return "Test message sent!"
 
 def keep_alive():
-    thread = threading.Thread(target=run)
-    thread.start()
+    import threading
+    from flask import request
+    def run():
+        app.run(host="0.0.0.0", port=10000)
+    t = threading.Thread(target=run)
+    t.start()
 
-# === Проверка монет на мем-гем ===
-def check_mem_gems():
+def get_mem_gems():
     url = "https://api.coingecko.com/api/v3/coins/markets"
     params = {
         "vs_currency": "usd",
@@ -35,55 +36,69 @@ def check_mem_gems():
         "sparkline": False
     }
 
-    response = requests.get(url, params=params)
-    coins = response.json()
+    try:
+        response = requests.get(url, params=params)
+        coins = response.json()
+        gems = []
 
-    for coin in coins:
-        try:
-            name = coin["name"]
-            symbol = coin["symbol"].upper()
-            price = coin["current_price"]
-            ath = coin["ath"]
-            ath_change = coin["ath_change_percentage"]
-            volume = coin["total_volume"]
-            market_cap = coin["market_cap"]
+        for coin in coins:
+            try:
+                name = coin["name"]
+                symbol = coin["symbol"].upper()
+                price = coin["current_price"]
+                ath = coin["ath"]
+                volume = coin["total_volume"]
+                market_cap = coin["market_cap"]
+                ath_change = coin["ath_change_percentage"]
 
-            # === Фильтры ===
-            if ath_change < -80 and price <= 1 and market_cap and market_cap >= 5000000 and volume >= 1000000:
-                # Расчёт целей (TP1–TP4) от текущей цены
-                tp1 = round(price * 1.272, 4)
-                tp2 = round(price * 1.618, 4)
-                tp3 = round(price * 2.0, 4)
-                tp4 = round(price * 2.618, 4)
+                if (
+                    not name or not symbol or price <= 0 or ath <= 0 or
+                    market_cap is None or market_cap < 5_000_000 or
+                    volume is None or volume < 1_000_000 or price > 3 or
+                    any(stable in symbol for stable in ["USD", "USDT", "BUSD", "DAI", "TUSD"]) or
+                    any(bad in symbol for bad in ["SCAM", "PIG", "TURD", "RUG", "ASS"])
+                ):
+                    continue
 
-                msg = f"""
-🚨 <b>High Potential MEM-GEM</b> 🚨
-<b>{name} ({symbol})</b>
+                drop_pct = round((1 - price / ath) * 100, 2)
+                if not (80 <= drop_pct <= 90):
+                    continue
 
-📉 Price: ${price}
-🔻 Down from ATH: {round(ath_change, 2)}%
-💰 Volume: ${volume:,}
-🏦 Market Cap: ${market_cap:,}
+                # Фибоначчи цели
+                tp1 = round(price * 1.272, 6)
+                tp2 = round(price * 1.618, 6)
+                tp3 = round(price * 2.0, 6)
+                tp4 = round(price * 2.618, 6)
 
-🎯 Targets:
-TP1: ${tp1}
-TP2: ${tp2}
-TP3: ${tp3}
-TP4: ${tp4}
+                msg = f"""🚀 Найден мем-гем!
 
+🔸 Название: {name} ({symbol})
+💲 Цена: ${price}
+📉 Падение от ATH: -{drop_pct:.1f}%
+📊 Объём: ${volume:,.0f}
+🎯 Цели (Fibonacci):
+• TP1 (1.272): ${tp1}
+• TP2 (1.618): ${tp2}
+• TP3 (2.0):   ${tp3}
+• TP4 (2.618): ${tp4}
+
+🔗 https://www.coingecko.com/en/coins/{coin['id']}
 #memgem #crypto #potential
 """
-                bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode=telegram.ParseMode.HTML)
 
-        except Exception as e:
-            print("Ошибка при проверке монеты:", e)
+                bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="HTML")
 
-# === Основной цикл автообновления ===
+            except Exception as e:
+                print("Ошибка при проверке монеты:", e)
+
+    except Exception as e:
+        print("Ошибка при получении данных:", e)
+
 def main_loop():
     while True:
         try:
-            print("🔄 Поиск мем-гемов:", datetime.datetime.now())
-            check_mem_gems()
+            print("🔄 Поиск мем-гемов...")
+            get_mem_gems()
         except Exception as e:
             print("Ошибка в основном цикле:", e)
         time.sleep(180)  # обновление каждые 3 минуты
@@ -91,7 +106,3 @@ def main_loop():
 # === Запуск ===
 keep_alive()
 main_loop()
-@app.route("/send_test")
-def send_test():
-    bot.send_message(chat_id=CHAT_ID, text="✅ Test message from mem-gem bot")
-    return "Test message sent!"
