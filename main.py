@@ -102,7 +102,12 @@ def main_loop():
         except Exception as e:
             print("Ошибка в основном цикле:", e)
         time.sleep(180)  # обновление каждые 3 минуты
-
+@app.route('/get_chat_id')
+def get_chat_id():
+    updates = bot.get_updates()
+    if updates:
+        return str(updates[-1].message.chat.id)
+    return "Нет новых сообщений. Напиши что-нибудь боту."
 # === Запуск ===
 keep_alive()
 main_loop()
