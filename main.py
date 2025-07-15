@@ -56,3 +56,14 @@ if __name__ == "__main__":
     else:
         bot.send_message(chat_id=CHAT_ID, text="⛔ Ничего не найдено по условиям (80–90% падение и x2 потенциал)")
     app.run(host="0.0.0.0", port=10000)
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return 'Bot is running!'
+
+@app.route('/send_test')
+def send_test():
+    bot.send_message(chat_id=CHAT_ID, text="🔔 Проверка: бот работает и отправляет сообщения!")
+    return 'Test message sent!'
