@@ -1,14 +1,13 @@
+
 import time
 import requests
 from flask import Flask
 from telegram import Bot
 
-# === Настройки Telegram ===
 TOKEN = "8111573872:AAE_LGmsgtGmKmOxx2v03Tsd5bL28z9bL3Y"
 CHAT_ID = 944484522
 bot = Bot(token=TOKEN)
 
-# === Flask ===
 app = Flask(__name__)
 
 @app.route('/')
@@ -17,14 +16,9 @@ def home():
 
 @app.route('/send_test')
 def send_test():
-    try:
-        bot.send_message(chat_id=CHAT_ID, text="✅ Test message sent!")
-        print("✅ Test message отправлено в Telegram")
-    except Exception as e:
-        print("❌ Ошибка при отправке тестового сообщения:", e)
+    bot.send_message(chat_id=CHAT_ID, text="✅ Test message sent!")
     return "Test message sent!"
 
-# === Keep-alive для Render ===
 def keep_alive():
     import threading
     def run():
@@ -32,7 +26,6 @@ def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
-# === Поиск мем-гемов ===
 def get_mem_gems():
     url = "https://api.coingecko.com/api/v3/coins/markets"
     params = {
@@ -46,8 +39,7 @@ def get_mem_gems():
     try:
         response = requests.get(url, params=params)
         coins = response.json()
-        gems = []
-
+        print(f"🔍 Получено {len(coins)} монет с CoinGecko")
         for coin in coins:
             try:
                 name = coin["name"]
@@ -71,7 +63,6 @@ def get_mem_gems():
                 if not (80 <= drop_pct <= 90):
                     continue
 
-                # Фибоначчи цели
                 tp1 = round(price * 1.272, 6)
                 tp2 = round(price * 1.618, 6)
                 tp3 = round(price * 2.0, 6)
@@ -92,24 +83,24 @@ def get_mem_gems():
 🔗 https://www.coingecko.com/en/coins/{coin['id']}
 #memgem #crypto #potential
 """
-                print("📤 Отправка Telegram:", symbol)
+
+                print(f"📤 Отправка Telegram: {symbol}")
                 bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="HTML")
 
             except Exception as e:
-                print("⚠️ Ошибка при отправке монеты:", e)
+                print("⚠️ Ошибка при проверке монеты:", e)
 
     except Exception as e:
         print("❌ Ошибка при получении данных с CoinGecko:", e)
 
-# === Основной цикл ===
 def main_loop():
     while True:
         try:
-            print("🔄 Поиск мем-гемов...")
+            print("🔄 Бот запущен — начинаю сканировать мем-гемы...")
             get_mem_gems()
         except Exception as e:
-            print("❌ Ошибка в основном цикле:", e)
-        time.sleep(30)  # каждые 30 сек для теста
+            print("❗ Ошибка в основном цикле:", e)
+        time.sleep(180)
 
 # === Запуск ===
 keep_alive()
